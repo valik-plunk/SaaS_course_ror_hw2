@@ -7,13 +7,37 @@ class MoviesController < ApplicationController
   end
 
   def index
-    @movies = Movie.order(params[:sort])
-    @sort = params[:sort]
+    #debugger
     @all_ratings = Movie.ratings
-    @filtered_ratings = params[:ratings] || {}
-
-    if !@filtered_ratings.empty?
-      @movies = @movies.where(:rating  => @filtered_ratings.keys)
+    if params.include?(:commit)
+      if params.include?(:ratings)
+        session[:ratings]=params[:ratings]
+        @selected_ratings = params[:ratings]
+        @movies = Movie.find(:all, :conditions => { :rating => @selected_ratings.keys})
+      else
+        if session.include?(:ratings)
+          session.delete(:ratings)
+        end
+        @movies = Movie.all
+      end
+    elsif params.include?(:sort)
+      @sort = params[:sort]
+      session[:sort]=@sort
+      @selected_ratings = session[:ratings]
+      if @selected_ratings == nil
+        @movies = Movie.find(:all,:order => @sort)
+      else
+#@movies = Movie.find(:all, :conditions => { :rating => @selected_ratings.keys}, :order => @sort)
+        @movies = Movie.where(:rating => @selected_ratings.keys).order(@sort)
+      end
+    else
+      if session.include?(:sort)
+        redirect_to :action => 'index', :sort => session[:sort]
+      elsif session.include?(:ratings)
+        redirect_to :action => 'index', :commit =>'Refresh', :ratings => session[:ratings] 
+      else
+        @movies = Movie.all
+      end
     end
   end
 
